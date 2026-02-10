@@ -16,25 +16,18 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework import permissions
 
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include('store.urls')),
-]
+# urls.py
 
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
-
-urlpatterns += [
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-]
-
+# urls.py
 schema_view = get_schema_view(
    openapi.Info(
       title="E-Commerce API",
@@ -45,6 +38,28 @@ schema_view = get_schema_view(
    permission_classes=(permissions.AllowAny,),
 )
 
-urlpatterns += [
-   path('swagger/', schema_view.with_ui('swagger', cache_timeout=0)),
+# ضيفي السطرين دول تحت الـ schema_view علطول وقبل الـ urlpatterns
+schema_view.security_definitions = {
+    'Bearer': {
+        'type': 'apiKey',
+        'name': 'Authorization',
+        'in': 'header',
+        'description': 'اكتبي كلمة Bearer وبعدها مسافة ثم التوكن'
+    }
+}
+
+schema_view.security = [{'Bearer': []}]
+
+# Swagger UI URLs
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    
+    # السطر ده هو اللي هيحل مشكلة الـ 404 لما تدوسي Django Login
+    path('api-auth/', include('rest_framework.urls')), 
+
+    path('api/', include('store.urls')),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
